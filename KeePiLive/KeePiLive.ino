@@ -249,6 +249,14 @@ void loop()
      }
      else //Reset Reboot Flag
      {
+       
+    // Print out the time
+    Serial.print("Ok, RebootTime = ");
+    print2digits(rebootHour);
+    Serial.write(':');
+    print2digits(rebootMinute);
+    Serial.println();
+    
        Serial.println("Never touch a running system");
        scheduledRebootDone = false;
        scheduledRebootInit = false;
