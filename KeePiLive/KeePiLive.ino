@@ -1,18 +1,18 @@
-// 
+//
 // Simple example showing how to set the RTC alarm pin to wake up the Arduino.
 // This is a different mode to the alarm clock, which wakes at a particular time.
 // This mode is a repeating periodic time, waking the Arduino at fixed intervals.
 // Note: this example doesn't wake up the RPi. For that add:
 //
-//     SleepyPi.enablePiPower(true);  
+//     SleepyPi.enablePiPower(true);
 //
 // after arduino wakeup. For a clearer picture of how to do this see the
-// eaxmple WakePiPeriodically which wakes the Rpi at fixed intervals. 
-// 
+// eaxmple WakePiPeriodically which wakes the Rpi at fixed intervals.
+//
 // To test on the RPi without power cycling and using the Arduino IDE
 // to view the debug messages, either fit the Power Jumper or enable
 // self-power. http://spellfoundry.com/sleepy-pi/programming-arduino-ide/
-// 
+//
 
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ uint8_t          PeriodicTimer_Value        = 1;           // Timer Interval in 
 
 tmElements_t tm;
 
-      
+
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
@@ -55,11 +55,11 @@ tmElements_t tm;
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
 
-//  
+//
 //Global Variables
 //
-const int rebootHour = 2;
-const int rebootMinute = 0; 
+const int rebootHour = 4;
+const int rebootMinute = 0;
 boolean scheduledRebootInit = false;
 boolean scheduledRebootDone = false;
 DateTime rebootTime;
@@ -81,18 +81,18 @@ void alarm_isr()
 }
 
 void setup()
-{ 
-  
-  
+{
+
+
   // Configure "Standard" LED pin
-  pinMode(LED_PIN, OUTPUT);		
+  pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN,LOW);		// Switch off LED
 
   // initialize serial communication: In Arduino IDE use "Serial Monitor"
   Serial.begin(9600);
   Serial.println("Starting, but I'm going to go to sleep for a while...");
   delay(50);
-  
+
   SleepyPi.rtcInit(true);
 
   // Default the clock to the time this was compiled.
@@ -101,11 +101,11 @@ void setup()
   if (getDate(__DATE__) && getTime(__TIME__)) {
       // and configure the RTC with this info
       SleepyPi.setTime(DateTime(F(__DATE__), F(__TIME__)));
-  } 
-  
+  }
+
   printTimeNow();
 
-  //Set current time as last reboot  
+  //Set current time as last reboot
   rebootTime = SleepyPi.readTime();
 
   Serial.print("Periodic Interval Set for: ");
@@ -126,7 +126,7 @@ void setup()
   }
 }
 
-void loop() 
+void loop()
 {
     SleepyPi.rtcClearInterrupts();
 
@@ -140,11 +140,11 @@ void loop()
 
     // Enter power down state with ADC and BOD module disabled.
     // Wake up when wake up pin is low.
-    SleepyPi.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF); 
+    SleepyPi.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
 
     // Disable external pin interrupt on wake up pin.
     detachInterrupt(0);
-    
+
     SleepyPi.ackTimer1();
     Serial.println("I've Just woken up on a Periodic Timer!");
     printTimeNow();
@@ -152,8 +152,8 @@ void loop()
     digitalWrite(LED_PIN,HIGH);
     delay(100);
     digitalWrite(LED_PIN,LOW);
-    
-      
+
+
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
@@ -161,8 +161,8 @@ void loop()
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
-  
-  
+
+
    //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
@@ -170,20 +170,20 @@ void loop()
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
-    
+
     //Check if Pi is offline, without cutting power when he is NOT (bcuz we dont wanna interrup the boot)
     if (SleepyPi.checkPiStatus(false) == false) //offline
     {
       Serial.println("Pi is offline");
-      
+
       //Try feeding him the juice to start him up
       delay(100);
       digitalWrite(LED_PIN,HIGH);
       SleepyPi.enablePiPower(true);
       delay(100);
       digitalWrite(LED_PIN,LOW);
-      
-      
+
+
       if (scheduledRebootInit == true) //Pi seems to have been offline because of reboot sheduling
       {
         if (scheduledRebootDone == false)
@@ -201,7 +201,7 @@ void loop()
             SleepyPi.enablePiPower(false);
           }
         }
-        
+
       }
       else // Pi is offline but was not sheduled to be offline
       {
@@ -216,7 +216,7 @@ void loop()
       Serial.println("Pi is running");
      //Check if it is time to reboot -> 0H und <10M
      DateTime now = SleepyPi.readTime();
-     if (now.hour() == rebootHour && now.minute()<rebootMinute)
+     if (now.hour() == rebootHour && abs(now.minute()-rebootMinute)<=5)
      {
          Serial.println("It's reboot time");
          //Check if reboot was initiated
@@ -235,7 +235,7 @@ void loop()
              {
                Serial.println("Why am i still alive?");
                 int threshold = SleepyPi.readTime().minute() - rebootTime.minute();
-                if (threshold >= 1) // and it was more than 1 minute ago 
+                if (threshold >= 1) // and it was more than 1 minute ago
                 {
                    Serial.println("Harakiri");
                    SleepyPi.enablePiPower(false); //Kill that MoFo
@@ -249,20 +249,18 @@ void loop()
      }
      else //Reset Reboot Flag
      {
-       
-    // Print out the time
-    Serial.print("Ok, RebootTime = ");
-    print2digits(rebootHour);
-    Serial.write(':');
-    print2digits(rebootMinute);
-    Serial.println();
-    
-       Serial.println("Never touch a running system");
+       // Print out the time
+       Serial.print("Ok, RebootTime = ");
+       print2digits(rebootHour);
+       Serial.write(':');
+       print2digits(rebootMinute);
+       Serial.println();
+       Serial.println("Never touch a running system, resetting reboot flag");
        scheduledRebootDone = false;
        scheduledRebootInit = false;
      }
-     
-      
+
+
     }
 }
 
@@ -288,7 +286,7 @@ void loop()
 
 
 // **********************************************************************
-// 
+//
 //  - Helper routines
 //
 // **********************************************************************
@@ -296,7 +294,7 @@ void printTimeNow()
 {
     // Read the time
     DateTime now = SleepyPi.readTime();
-    
+
     // Print out the time
     Serial.print("Ok, Time = ");
     print2digits(now.hour());
@@ -307,7 +305,7 @@ void printTimeNow()
     Serial.print(", Date (D/M/Y) = ");
     Serial.print(now.day());
     Serial.write('/');
-    Serial.print(now.month()); 
+    Serial.print(now.month());
     Serial.write('/');
     Serial.print(now.year(), DEC);
     Serial.println();
@@ -349,7 +347,7 @@ void print2digits(int number) {
   Serial.print(number);
 }
 
-      
+
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
@@ -357,4 +355,3 @@ void print2digits(int number) {
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////
-  
